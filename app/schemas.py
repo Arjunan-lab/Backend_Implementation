@@ -219,6 +219,15 @@ class TaskStatusResponse(BaseModel):
     )
 
 
+class WeatherResponse(BaseModel):
+    """Current weather returned with a final recommendation."""
+
+    location: str
+    temperature: float
+    humidity: int
+    rainfall: float
+
+
 class FinalRecommendationResponse(BaseModel):
     """Completed final recommendation returned by ``POST /final-recommendation``."""
 
@@ -230,3 +239,4 @@ class FinalRecommendationResponse(BaseModel):
     deficiencies: list[Any]
     recommended_crops: list[Any]
     recommended_fertilizers: list[Any]
+    weather: WeatherResponse

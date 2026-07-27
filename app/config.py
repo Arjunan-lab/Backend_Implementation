@@ -13,6 +13,7 @@ class Settings(BaseSettings):
     REFRESH_TOKEN_EXPIRE_DAYS: int = 7
     SARVAM_API_KEY: str
     SARVAM_API_URL: str
+    OPENWEATHER_API_KEY: str
     GEMINI_API_KEY_1: str
     GEMINI_API_KEY_2: str
     GEMINI_API_KEY_3: str

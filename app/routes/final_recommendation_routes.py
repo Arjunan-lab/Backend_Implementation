@@ -11,6 +11,8 @@ from starlette.concurrency import run_in_threadpool
 from app.dependencies import get_current_user
 from app.models import User
 from app.schemas import FinalRecommendationResponse
+from app.services.sarvam_service import translate_text
+from app.services.weather_service import WeatherServiceError, get_weather
 from app.task_metadata import record_task_upload
 from app.tasks.final_recommendation_task import generate_final_recommendation
 
@@ -34,8 +36,7 @@ async def get_final_recommendation(
     ph: float = Form(...),
     organic_carbon: float = Form(...),
     electrical_conductivity: float = Form(...),
-    temperature: float = Form(...),
-    humidity: float = Form(...),
+    location: str = Form(...),
     current_user: User = Depends(get_current_user),
 ) -> FinalRecommendationResponse:
     """Queue a recommendation and return its completed prediction fields."""
@@ -44,6 +45,19 @@ async def get_final_recommendation(
 
     if image.content_type not in {"image/jpeg", "image/png", "image/jpg", "image/webp"}:
         raise HTTPException(status_code=400, detail="Invalid image file type.")
+
+    try:
+        weather = await run_in_threadpool(get_weather, location)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except TimeoutError as exc:
+        raise HTTPException(status_code=504, detail=str(exc)) from exc
+    except ConnectionError as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
+    except PermissionError as exc:
+        raise HTTPException(status_code=502, detail=str(exc)) from exc
+    except WeatherServiceError as exc:
+        raise HTTPException(status_code=502, detail=str(exc)) from exc
 
     try:
         suffix = Path(image.filename).suffix
@@ -63,8 +77,8 @@ async def get_final_recommendation(
             ph,
             organic_carbon,
             electrical_conductivity,
-            temperature,
-            humidity,
+            weather["temperature"],
+            weather["humidity"],
             current_user.language_id,
             current_user.id,
         )
@@ -76,6 +90,13 @@ async def get_final_recommendation(
             for key, value in recommendation.items()
             if key != "soil_confidence"
         }
+        response_weather = dict(weather)
+        response_weather["location"] = await run_in_threadpool(
+            translate_text,
+            weather["location"],
+            current_user.language_id,
+        )
+        response_data["weather"] = response_weather
         return FinalRecommendationResponse(task_id=task.id, **response_data)
     except FileNotFoundError as exc:
         raise HTTPException(status_code=404, detail="Image file not found.") from exc
