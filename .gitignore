@@ -1,0 +1,23 @@
+# Virtual environments
+venv/
+venv_final/
+
+# Python cache
+**pycache**/
+*.py[cod]
+*.pyo
+
+# Environment variables
+.env
+
+# VS Code
+.vscode/
+
+# PyCharm
+.idea/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Logs
+*.log

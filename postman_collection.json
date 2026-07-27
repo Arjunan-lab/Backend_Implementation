@@ -1,0 +1,168 @@
+{
+  "info": {
+    "_postman_id": "a988d4fe-3197-40e1-a0a9-bd89e248b111",
+    "name": "User Authentication API",
+    "description": "Postman Collection for verifying and testing the User Authentication API built with FastAPI and PostgreSQL.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Register",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"user@example.com\",\n  \"password\": \"Password123!\",\n  \"preferred_language\": \"English\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/register",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "register"
+          ]
+        },
+        "description": "Registers a new user. The request is validated against email format, password complexity (min 8 chars, uppercase, lowercase, digit, special character), and supported languages (English, Hindi, Telugu, Tamil)."
+      },
+      "response": []
+    },
+    {
+      "name": "Duplicate Registration (Conflict)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"user@example.com\",\n  \"password\": \"Password123!\",\n  \"preferred_language\": \"English\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/register",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "register"
+          ]
+        },
+        "description": "Attempts to register the exact same email address again. Returns a 409 Conflict error."
+      },
+      "response": []
+    },
+    {
+      "name": "Login",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "var jsonData = pm.response.json();",
+              "if (jsonData.access_token) {",
+              "    pm.environment.set(\"access_token\", jsonData.access_token);",
+              "    console.log(\"Saved access_token to environment variables.\");",
+              "}"
+            ],
+            "type": "text/javascript"
+          }
+        ]
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"user@example.com\",\n  \"password\": \"Password123!\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/login",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "login"
+          ]
+        },
+        "description": "Authenticates the user using email and password. Generates and returns a JWT access token (valid 30 minutes) and refresh token (valid 7 days). Dynamically sets the `access_token` variable in Postman upon success."
+      },
+      "response": []
+    },
+    {
+      "name": "Invalid Login (Unauthorized)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"user@example.com\",\n  \"password\": \"WrongPassword!\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/login",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "login"
+          ]
+        },
+        "description": "Attempts to login with invalid credentials. Returns a 401 Unauthorized error."
+      },
+      "response": []
+    },
+    {
+      "name": "Get Profile (Protected /me)",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{access_token}}",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/me",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "me"
+          ]
+        },
+        "description": "Demonstrates token authentication using `get_current_user()` dependency. Requires the Bearer token returned from a successful Login."
+      },
+      "response": []
+    }
+  ],
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://127.0.0.1:8000",
+      "type": "string"
+    }
+  ]
+}
