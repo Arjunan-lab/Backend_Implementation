@@ -34,7 +34,7 @@ async def predict_soil_fertility_status(
 ) -> Dict[str, Any]:
     """Predict soil fertility status based on soil and environmental conditions."""
     try:
-        request_data = request.dict()
+        request_data = request.model_dump()
         result = predict_soil_fertility(request_data, current_user.language_id)
         return result
     except FileNotFoundError as exc:

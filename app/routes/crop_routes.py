@@ -58,7 +58,7 @@ async def predict_crop(
         HTTPException: If prediction fails or required files are missing.
     """
     try:
-        request_data = request.dict()
+        request_data = request.model_dump()
         result = recommend_crop(request_data, current_user.language_id)
         return result
     except FileNotFoundError as exc:

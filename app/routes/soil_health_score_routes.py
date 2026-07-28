@@ -19,7 +19,7 @@ async def predict_soil_health_score_endpoint(
 ) -> Dict[str, Any]:
     """Predict a numeric soil health score from soil and environmental features."""
     try:
-        result = predict_soil_health_score(request.dict())
+        result = predict_soil_health_score(request.model_dump())
         return result
     except FileNotFoundError as exc:
         raise HTTPException(status_code=500, detail=f"Model files not found: {str(exc)}") from exc

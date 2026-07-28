@@ -1,17 +1,24 @@
 import re
 from datetime import datetime
 from typing import Any
-from pydantic import BaseModel, EmailStr, Field, field_validator
+from pydantic import AliasChoices, BaseModel, EmailStr, Field, field_validator
+
+
+from app.models import UserRole, UserStatus
 
 
 class UserRegisterRequest(BaseModel):
     """
     Schema for register request body validation.
     """
+    username: str | None = Field(default=None, description="Display username for the account.")
     email: EmailStr
     password: str = Field(..., description="User password. Must meet complexity requirements.")
     confirm_password: str = Field(..., description="Confirm password. Must be identical to password.")
     language_id: int = Field(..., description="ID of the predefined language from the languages table.")
+    role: UserRole = Field(default=UserRole.FARMER, description="Role of the user ('farmer' or 'admin'). Defaults to 'farmer'.")
+    region: str | None = Field(default=None, description="Geographical location or farming region.")
+    admin_secret: str | None = Field(default=None, description="Secret key required when registering an Admin account ('AdminSecret123!').")
 
     @field_validator("password")
     @classmethod
@@ -72,10 +79,31 @@ class PasswordManagementResponse(BaseModel):
     message: str
 
 
+class LogoutResponse(BaseModel):
+    """Response returned upon successful user logout, including username and role."""
+
+    message: str = "Logged out successfully"
+    username: str | None = None
+    role: str = "farmer"
+
+
 class UserUpdateRequest(BaseModel):
     """Schema for updating the authenticated user's profile."""
+    username: str | None = None
     email: EmailStr
     language_id: int
+    region: str | None = None
+
+
+class UserRoleUpdateRequest(BaseModel):
+    """Schema for updating a user's role (Admin only)."""
+    username: str | None = Field(default=None, description="Username of the target account.")
+    role: UserRole = Field(..., description="New role to assign to the user ('farmer' or 'admin').")
+
+
+class UserStatusUpdateRequest(BaseModel):
+    """Schema for updating a user's status (Admin only)."""
+    status: UserStatus = Field(..., description="New operational status to assign to the user ('active', 'suspended', 'inactive').")
 
 
 class UserLoginRequest(BaseModel):
@@ -92,13 +120,18 @@ class TokenResponse(BaseModel):
     access_token: str
     refresh_token: str
     token_type: str = "Bearer"
+    role: str = "farmer"
 
 class UserResponse(BaseModel):
     """
     Schema representing user profile details returned by API.
     """
     id: int
+    username: str | None = None
     email: EmailStr
+    role: str = "farmer"
+    status: str = "active"
+    region: str | None = None
     language_id: int | None
     created_at: datetime
     last_login_at: datetime | None
@@ -109,13 +142,61 @@ class UserResponse(BaseModel):
         json_schema_extra = {
             "example": {
                 "id": 1,
+                "username": "john_farmer",
                 "email": "user@example.com",
+                "role": "farmer",
+                "status": "active",
+                "region": "Telangana",
                 "language_id": 1,
                 "created_at": "2026-07-21T10:30:00Z",
                 "last_login_at": "2026-07-21T10:30:00Z",
                 "last_logout_at": "2026-07-21T12:00:00Z"
             }
         }
+
+
+class UserRoleUpdateResponse(BaseModel):
+    """Response returned upon updating a user's security role."""
+
+    message: str
+    user: UserResponse
+
+
+class UserStatusUpdateResponse(BaseModel):
+    """Response returned upon updating a user's operational status."""
+
+    message: str
+    user: UserResponse
+
+
+class AdminUserSummaryResponse(BaseModel):
+    """Admin view of a system user."""
+    id: int
+    username: str | None = None
+    email: EmailStr
+    role: str
+    status: str = "active"
+    region: str | None = None
+    language_id: int | None
+    created_at: datetime
+    last_login_at: datetime | None
+
+    class Config:
+        from_attributes = True
+
+
+class AdminSystemAnalyticsResponse(BaseModel):
+    """Global administrative statistics across the entire system."""
+    total_users: int
+    total_farmers: int
+    total_admins: int
+    active_users: int
+    suspended_users: int
+    recent_farmers_count: int
+    total_predictions: int
+    total_chat_messages: int
+    users_by_region: dict[str, int]
+
 
 
 class PredictionHistorySummaryResponse(BaseModel):
@@ -176,7 +257,12 @@ class AnalyticsResponse(BaseModel):
 
 class ChatRequest(BaseModel):
     """Schema for an authenticated chatbot request."""
-    question: str = Field(..., min_length=1)
+    question: str = Field(
+        ...,
+        validation_alias=AliasChoices("question", "message"),
+        min_length=1,
+        description="The agriculture question asked by the user."
+    )
     prediction_history_id: int | None = None
 
 

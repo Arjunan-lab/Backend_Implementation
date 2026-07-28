@@ -49,5 +49,48 @@ def get_current_user(
     user = db.query(User).filter(User.id == user_id).first()
     if user is None:
         raise credentials_exception
-        
+
+    # Token Revocation Check: Verify if token was issued prior to user's last logout
+    iat: float | None = payload.get("iat")
+    if iat and user.last_logout_at:
+        logout_timestamp = user.last_logout_at.timestamp()
+        if iat < logout_timestamp - 1:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Token has been revoked due to logout. Please log in again.",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
+
     return user
+
+
+def require_roles(allowed_roles: list[str]):
+    """
+    Higher-order security dependency enforcing Role-Based Access Control (RBAC).
+    Checks user role and raises HTTP 403 Forbidden if unauthorized.
+    """
+    def role_checker(current_user: User = Depends(get_current_user)) -> User:
+        if current_user.role not in allowed_roles:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Access denied: Administrative privileges required.",
+            )
+        return current_user
+
+    return role_checker
+
+
+def get_current_admin_user(
+    current_user: User = Depends(get_current_user),
+) -> User:
+    """
+    Dependency requiring the authenticated user to possess the ADMIN role.
+    Raises HTTP 403 Forbidden for non-admin users.
+    """
+    if current_user.role != "admin":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Access denied: Administrative privileges required.",
+        )
+    return current_user
+

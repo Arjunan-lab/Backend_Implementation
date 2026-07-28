@@ -1,167 +1,940 @@
 {
   "info": {
     "_postman_id": "a988d4fe-3197-40e1-a0a9-bd89e248b111",
-    "name": "User Authentication API",
-    "description": "Postman Collection for verifying and testing the User Authentication API built with FastAPI and PostgreSQL.",
+    "name": "AI Soil Health & Crop Recommendation API",
+    "description": "Enterprise-grade Postman collection featuring Role-Based Access Control (RBAC), automated dual-token capture (Admin & Farmer), ML predictions, and administrative management API test suites.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{access_token}}",
+        "type": "string"
+      }
+    ]
   },
   "item": [
     {
-      "name": "Register",
-      "request": {
-        "method": "POST",
-        "header": [
-          {
-            "key": "Content-Type",
-            "value": "application/json",
-            "type": "text"
-          }
-        ],
-        "body": {
-          "mode": "raw",
-          "raw": "{\n  \"email\": \"user@example.com\",\n  \"password\": \"Password123!\",\n  \"preferred_language\": \"English\"\n}"
-        },
-        "url": {
-          "raw": "{{base_url}}/register",
-          "host": [
-            "{{base_url}}"
-          ],
-          "path": [
-            "register"
-          ]
-        },
-        "description": "Registers a new user. The request is validated against email format, password complexity (min 8 chars, uppercase, lowercase, digit, special character), and supported languages (English, Hindi, Telugu, Tamil)."
-      },
-      "response": []
-    },
-    {
-      "name": "Duplicate Registration (Conflict)",
-      "request": {
-        "method": "POST",
-        "header": [
-          {
-            "key": "Content-Type",
-            "value": "application/json",
-            "type": "text"
-          }
-        ],
-        "body": {
-          "mode": "raw",
-          "raw": "{\n  \"email\": \"user@example.com\",\n  \"password\": \"Password123!\",\n  \"preferred_language\": \"English\"\n}"
-        },
-        "url": {
-          "raw": "{{base_url}}/register",
-          "host": [
-            "{{base_url}}"
-          ],
-          "path": [
-            "register"
-          ]
-        },
-        "description": "Attempts to register the exact same email address again. Returns a 409 Conflict error."
-      },
-      "response": []
-    },
-    {
-      "name": "Login",
-      "event": [
+      "name": "1. Authentication",
+      "item": [
         {
-          "listen": "test",
-          "script": {
-            "exec": [
-              "var jsonData = pm.response.json();",
-              "if (jsonData.access_token) {",
-              "    pm.environment.set(\"access_token\", jsonData.access_token);",
-              "    console.log(\"Saved access_token to environment variables.\");",
-              "}"
+          "name": "Register (Farmer Account)",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
             ],
-            "type": "text/javascript"
-          }
-        ]
-      ],
-      "request": {
-        "method": "POST",
-        "header": [
-          {
-            "key": "Content-Type",
-            "value": "application/json",
-            "type": "text"
-          }
-        ],
-        "body": {
-          "mode": "raw",
-          "raw": "{\n  \"email\": \"user@example.com\",\n  \"password\": \"Password123!\"\n}"
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"john_farmer\",\n  \"email\": \"farmer@example.com\",\n  \"password\": \"Password123!\",\n  \"confirm_password\": \"Password123!\",\n  \"language_id\": 1,\n  \"role\": \"farmer\",\n  \"region\": \"Telangana\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/register",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "register"
+              ]
+            },
+            "description": "Registers a standard farmer account with username, role: farmer, and region."
+          },
+          "response": []
         },
-        "url": {
-          "raw": "{{base_url}}/login",
-          "host": [
-            "{{base_url}}"
+        {
+          "name": "Register (Admin Account)",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"admin_master\",\n  \"email\": \"admin@example.com\",\n  \"password\": \"Password123!\",\n  \"confirm_password\": \"Password123!\",\n  \"language_id\": 1,\n  \"role\": \"admin\",\n  \"region\": \"Headquarters\",\n  \"admin_secret\": \"AdminSecret123!\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/admin/register",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin",
+                "register"
+              ]
+            },
+            "description": "Registers an administrator account at /admin/register with role: admin and admin_secret."
+          },
+          "response": []
+        },
+        {
+          "name": "Farmer Login (Auto-Saves Farmer Token)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var jsonData = pm.response.json();",
+                  "if (jsonData.access_token) {",
+                  "    pm.collectionVariables.set(\"access_token\", jsonData.access_token);",
+                  "    pm.collectionVariables.set(\"farmer_access_token\", jsonData.access_token);",
+                  "    pm.environment.set(\"access_token\", jsonData.access_token);",
+                  "    console.log(\"Saved farmer_access_token to collection variables.\");",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
           ],
-          "path": [
-            "login"
-          ]
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"farmer@example.com\",\n  \"password\": \"Password123!\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/login",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "login"
+              ]
+            },
+            "description": "Authenticates farmer credentials and automatically populates `farmer_access_token` and default `access_token`."
+          },
+          "response": []
         },
-        "description": "Authenticates the user using email and password. Generates and returns a JWT access token (valid 30 minutes) and refresh token (valid 7 days). Dynamically sets the `access_token` variable in Postman upon success."
-      },
-      "response": []
+        {
+          "name": "Admin Login (Auto-Saves Admin Token)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var jsonData = pm.response.json();",
+                  "if (jsonData.access_token) {",
+                  "    pm.collectionVariables.set(\"access_token\", jsonData.access_token);",
+                  "    pm.collectionVariables.set(\"admin_access_token\", jsonData.access_token);",
+                  "    console.log(\"Saved admin_access_token and active access_token to collection variables.\");",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin@example.com\",\n  \"password\": \"Password123!\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/admin/login",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin",
+                "login"
+              ]
+            },
+            "description": "Authenticates administrator credentials and automatically populates `admin_access_token`."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Profile (/me)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/me",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "me"
+              ]
+            },
+            "description": "Retrieves profile details (including assigned role) of currently logged-in user."
+          },
+          "response": []
+        },
+        {
+          "name": "Forgot Password",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"farmer@example.com\",\n  \"new_password\": \"NewPassword123!\",\n  \"confirm_password\": \"NewPassword123!\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/forgot-password",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "forgot-password"
+              ]
+            },
+            "description": "Resets user password by email."
+          },
+          "response": []
+        },
+        {
+          "name": "Logout (Revokes Token Automatically)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.collectionVariables.set(\"access_token\", \"\");",
+                  "pm.collectionVariables.set(\"farmer_access_token\", \"\");",
+                  "pm.collectionVariables.set(\"admin_access_token\", \"\");",
+                  "console.log(\"Cleared active authentication tokens upon logout.\");"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/logout",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "logout"
+              ]
+            },
+            "description": "Logs out the user, invalidates active JWT bearer tokens, and automatically clears Postman tokens."
+          },
+          "response": []
+        }
+      ]
     },
     {
-      "name": "Invalid Login (Unauthorized)",
-      "request": {
-        "method": "POST",
-        "header": [
-          {
-            "key": "Content-Type",
-            "value": "application/json",
-            "type": "text"
-          }
-        ],
-        "body": {
-          "mode": "raw",
-          "raw": "{\n  \"email\": \"user@example.com\",\n  \"password\": \"WrongPassword!\"\n}"
+      "name": "2. Soil & Crop Predictions",
+      "item": [
+        {
+          "name": "Predict Soil Image",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": ""
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/predict-image",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "predict-image"
+              ]
+            },
+            "description": "Upload a soil image (JPEG/PNG) to classify soil type (e.g., Clayey, Sandy, Loamy)."
+          },
+          "response": []
         },
-        "url": {
-          "raw": "{{base_url}}/login",
-          "host": [
-            "{{base_url}}"
-          ],
-          "path": [
-            "login"
-          ]
+        {
+          "name": "Predict Crop Recommendation",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"soil_type\": \"Loamy\",\n  \"nitrogen\": 90.0,\n  \"phosphorus\": 42.0,\n  \"potassium\": 43.0,\n  \"ph\": 6.5,\n  \"organic_carbon\": 0.75,\n  \"electrical_conductivity\": 1.2,\n  \"temperature\": 25.5,\n  \"humidity\": 80.0\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/predict-crop",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "predict-crop"
+              ]
+            },
+            "description": "Recommends suitable crops based on soil and environmental parameters."
+          },
+          "response": []
         },
-        "description": "Attempts to login with invalid credentials. Returns a 401 Unauthorized error."
-      },
-      "response": []
+        {
+          "name": "Nutrient Deficiency Analysis",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"soil_type\": \"Clayey\",\n  \"nitrogen\": 50.0,\n  \"phosphorus\": 20.0,\n  \"potassium\": 30.0,\n  \"ph\": 6.0,\n  \"organic_carbon\": 0.5,\n  \"electrical_conductivity\": 1.0,\n  \"temperature\": 28.0,\n  \"humidity\": 65.0\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/nutrient-analysis",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "nutrient-analysis"
+              ]
+            },
+            "description": "Analyzes soil parameters and returns nutrient deficiencies and remedies."
+          },
+          "response": []
+        },
+        {
+          "name": "Predict Soil Fertility",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"soil_type\": \"Loamy\",\n  \"nitrogen\": 85.0,\n  \"phosphorus\": 40.0,\n  \"potassium\": 45.0,\n  \"ph\": 6.8,\n  \"organic_carbon\": 0.8,\n  \"electrical_conductivity\": 1.1,\n  \"temperature\": 26.0,\n  \"humidity\": 75.0\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/soil-fertility",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "soil-fertility"
+              ]
+            },
+            "description": "Predicts soil fertility classification (High, Medium, Low)."
+          },
+          "response": []
+        },
+        {
+          "name": "Predict Soil Health Status",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"soil_type\": \"Sandy\",\n  \"nitrogen\": 70.0,\n  \"phosphorus\": 35.0,\n  \"potassium\": 38.0,\n  \"ph\": 6.2,\n  \"organic_carbon\": 0.6,\n  \"electrical_conductivity\": 1.0,\n  \"temperature\": 27.0,\n  \"humidity\": 70.0\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/soil-health",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "soil-health"
+              ]
+            },
+            "description": "Predicts qualitative soil health status."
+          },
+          "response": []
+        },
+        {
+          "name": "Predict Soil Health Score",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"soil_type\": \"Loamy\",\n  \"nitrogen\": 90.0,\n  \"phosphorus\": 42.0,\n  \"potassium\": 43.0,\n  \"ph\": 6.5,\n  \"organic_carbon\": 0.75,\n  \"electrical_conductivity\": 1.2,\n  \"temperature\": 25.5,\n  \"humidity\": 80.0\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/soil-health-score",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "soil-health-score"
+              ]
+            },
+            "description": "Computes a numerical soil health score (0-100)."
+          },
+          "response": []
+        }
+      ]
     },
     {
-      "name": "Get Profile (Protected /me)",
-      "request": {
-        "method": "GET",
-        "header": [
-          {
-            "key": "Authorization",
-            "value": "Bearer {{access_token}}",
-            "type": "text"
-          }
-        ],
-        "url": {
-          "raw": "{{base_url}}/me",
-          "host": [
-            "{{base_url}}"
+      "name": "3. Final Recommendation Pipeline",
+      "item": [
+        {
+          "name": "Get Final End-to-End Recommendation",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "image",
+                  "type": "file",
+                  "src": ""
+                },
+                {
+                  "key": "nitrogen",
+                  "value": "90.0",
+                  "type": "text"
+                },
+                {
+                  "key": "phosphorus",
+                  "value": "42.0",
+                  "type": "text"
+                },
+                {
+                  "key": "potassium",
+                  "value": "43.0",
+                  "type": "text"
+                },
+                {
+                  "key": "ph",
+                  "value": "6.5",
+                  "type": "text"
+                },
+                {
+                  "key": "organic_carbon",
+                  "value": "0.75",
+                  "type": "text"
+                },
+                {
+                  "key": "electrical_conductivity",
+                  "value": "1.2",
+                  "type": "text"
+                },
+                {
+                  "key": "location",
+                  "value": "Hyderabad",
+                  "type": "text"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/final-recommendation",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "final-recommendation"
+              ]
+            },
+            "description": "Runs complete soil assessment pipeline (Image + NPK/pH values + OpenWeather live data + Celery task) and saves to history."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "4. History & Analytics",
+      "item": [
+        {
+          "name": "List Prediction History",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var jsonData = pm.response.json();",
+                  "if (Array.isArray(jsonData) && jsonData.length > 0) {",
+                  "    var firstId = jsonData[0].history_id || jsonData[0].id;",
+                  "    pm.collectionVariables.set(\"history_id\", firstId.toString());",
+                  "    console.log(\"Auto-captured latest history_id:\", firstId);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
           ],
-          "path": [
-            "me"
-          ]
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/history",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "history"
+              ]
+            },
+            "description": "Retrieves lightweight history summaries for the logged-in user and auto-saves the latest history_id."
+          },
+          "response": []
         },
-        "description": "Demonstrates token authentication using `get_current_user()` dependency. Requires the Bearer token returned from a successful Login."
-      },
-      "response": []
+        {
+          "name": "Get Prediction History Detail",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/history/{{history_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "history",
+                "{{history_id}}"
+              ]
+            },
+            "description": "Retrieves full details of a specific saved prediction by history ID."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Personal Analytics",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/analytics",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "analytics"
+              ]
+            },
+            "description": "Retrieves user-scoped analytics (total predictions, recommended crops count, soil type frequencies)."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "5. AI Agriculture Chatbot",
+      "item": [
+        {
+          "name": "Chat with AI Assistant",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"question\": \"What is the best fertilizer for rice crop in clayey soil?\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/chat",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "chat"
+              ]
+            },
+            "description": "Submits a query to the AI agriculture assistant."
+          },
+          "response": []
+        },
+        {
+          "name": "Chat with AI Assistant (With Prediction Context)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"question\": \"Explain my crop recommendations and fertilizer suggestions in detail.\",\n  \"prediction_history_id\": {{history_id}}\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/chat",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "chat"
+              ]
+            },
+            "description": "Submits an agriculture query linked to a specific saved prediction history ID."
+          },
+          "response": []
+        },
+        {
+          "name": "List Chat History",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/chat-history",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "chat-history"
+              ]
+            },
+            "description": "Lists past chat conversations for the logged-in user."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "6. Admin Management (RBAC Restricted)",
+      "item": [
+        {
+          "name": "Get Admin Profile (/admin/me)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{admin_access_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/admin/me",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin",
+                "me"
+              ]
+            },
+            "description": "Retrieves profile details (including admin role) of currently logged-in administrator."
+          },
+          "response": []
+        },
+        {
+          "name": "Admin - List All Users",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{admin_access_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/admin/users",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin",
+                "users"
+              ]
+            },
+            "description": "Lists all registered users in the system. Requires ADMIN role credentials."
+          },
+          "response": []
+        },
+        {
+          "name": "Admin - System-wide Analytics",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{admin_access_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/admin/analytics",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin",
+                "analytics"
+              ]
+            },
+            "description": "Returns platform-wide statistics (total users, farmers, admins, predictions, chat messages). Requires ADMIN role."
+          },
+          "response": []
+        },
+        {
+          "name": "Admin - Update User Role",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{admin_access_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"john_farmer\",\n  \"role\": \"admin\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/admin/users/1/role",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin",
+                "users",
+                "1",
+                "role"
+              ]
+            },
+            "description": "Updates a target user's security role (e.g. promote farmer to admin). Requires ADMIN role."
+          },
+          "response": []
+        },
+        {
+          "name": "Admin - Delete User Account",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{admin_access_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/admin/users/999",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin",
+                "users",
+                "999"
+              ]
+            },
+            "description": "Permanently deletes a target user account. Requires ADMIN role."
+          },
+          "response": []
+        },
+        {
+          "name": "RBAC Security Test (Farmer Access Denied 403)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Verify RBAC Guard Denial - Status 403 Forbidden\", function () {",
+                  "    pm.response.to.have.status(403);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{farmer_access_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/admin/users",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin",
+                "users"
+              ]
+            },
+            "description": "Attempts to access Admin API using a Farmer token. Asserts that the RBAC security guard blocks access with HTTP 403 Forbidden."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "7. Tasks & System",
+      "item": [
+        {
+          "name": "Get Task Status",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/tasks/sample-task-id",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "tasks",
+                "sample-task-id"
+              ]
+            },
+            "description": "Checks the execution status of a background task by Task ID."
+          },
+          "response": []
+        },
+        {
+          "name": "API Health Check (Root)",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                ""
+              ]
+            },
+            "description": "Basic server health status check."
+          },
+          "response": []
+        }
+      ]
     }
   ],
   "variable": [
     {
       "key": "base_url",
       "value": "http://127.0.0.1:8000",
+      "type": "string"
+    },
+    {
+      "key": "access_token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "farmer_access_token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "admin_access_token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "history_id",
+      "value": "1",
       "type": "string"
     }
   ]

@@ -1,6 +1,6 @@
 from datetime import datetime, timezone
 
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 from app.schemas import (
@@ -13,6 +13,7 @@ from app.schemas import (
     ChangePasswordRequest,
     ForgotPasswordRequest,
     PasswordManagementResponse,
+    LogoutResponse,
 )
 from app.dependencies import get_db, get_current_user
 from app.models import User
@@ -46,8 +47,8 @@ def register(
     "/login",
     response_model=TokenResponse,
     status_code=status.HTTP_200_OK,
-    summary="Log in and retrieve tokens",
-    description="Authenticates credentials and returns a Bearer access token (30m) and refresh token (7d)."
+    summary="Farmer Login Endpoint",
+    description="Authenticates farmer credentials specifically. Administrative accounts are denied access with HTTP 403 Forbidden.",
 )
 def login(
     login_data: UserLoginRequest,
@@ -55,11 +56,18 @@ def login(
 ):
     # Business logic layer authentication
     user = authenticate_user(db, login_data)
+
+    if user.role != "farmer":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Access denied: Farmer credentials required for farmer login. Please use /admin/login for administrative access.",
+        )
     
-    # Standard payload structure: user_id, email, language_id
+    # Standard payload structure: user_id, email, role, language_id
     payload = {
         "user_id": user.id,
         "email": user.email,
+        "role": user.role,
         "language_id": user.language_id
     }
     
@@ -70,7 +78,8 @@ def login(
     return {
         "access_token": access_token,
         "refresh_token": refresh_token,
-        "token_type": "Bearer"
+        "token_type": "Bearer",
+        "role": user.role
     }
 @router.post(
     "/token",
@@ -91,6 +100,7 @@ def token(
     payload = {
         "user_id": user.id,
         "email": user.email,
+        "role": user.role,
         "language_id": user.language_id
     }
 
@@ -100,7 +110,8 @@ def token(
     return {
         "access_token": access_token,
         "refresh_token": refresh_token,
-        "token_type": "Bearer"
+        "token_type": "Bearer",
+        "role": user.role
     }
 
 @router.get(
@@ -166,6 +177,7 @@ def forgot_password(
 
 @router.post(
     "/logout",
+    response_model=LogoutResponse,
     status_code=status.HTTP_200_OK,
     summary="Log out the current user",
     description="Records the current UTC logout time for the authenticated user."
@@ -173,11 +185,15 @@ def forgot_password(
 def logout(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
-):
+) -> LogoutResponse:
     """Record a successful logout for the authenticated user."""
     current_user.last_logout_at = datetime.now(timezone.utc)
     db.add(current_user)
     db.commit()
     db.refresh(current_user)
 
-    return {"message": "Logged out successfully"}
+    return LogoutResponse(
+        message="Logged out successfully",
+        username=getattr(current_user, "username", None) or current_user.email.split("@")[0],
+        role=current_user.role,
+    )

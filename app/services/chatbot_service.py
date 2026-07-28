@@ -44,17 +44,14 @@ def _get_prediction_context(
     db: Session,
     user_id: int,
     prediction_history_id: int | None,
+    is_admin: bool = False,
 ) -> PredictionHistory | None:
     if prediction_history_id is None:
         return None
-    return (
-        db.query(PredictionHistory)
-        .filter(
-            PredictionHistory.id == prediction_history_id,
-            PredictionHistory.user_id == user_id,
-        )
-        .first()
-    )
+    query = db.query(PredictionHistory).filter(PredictionHistory.id == prediction_history_id)
+    if not is_admin:
+        query = query.filter(PredictionHistory.user_id == user_id)
+    return query.first()
 
 
 def _build_prompt(
@@ -90,9 +87,13 @@ def _build_response_payload(
 
 def chat_with_user(db: Session, current_user: User, chat_data: ChatRequest) -> ChatResult:
     """Validate, generate, and save a single-language or bilingual conversation."""
-    prediction = _get_prediction_context(db, current_user.id, chat_data.prediction_history_id)
-    if chat_data.prediction_history_id is not None and prediction is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Prediction history not found.")
+    is_admin = (current_user.role == "admin")
+    prediction = _get_prediction_context(
+        db,
+        current_user.id,
+        chat_data.prediction_history_id,
+        is_admin=is_admin,
+    )
 
     question_language = detect_question_language(chat_data.question)
     preferred_language = get_preferred_language(current_user.language_id)

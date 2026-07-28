@@ -90,20 +90,29 @@ Install all package requirements:
 pip install -r requirements.txt
 ```
 
-### 5. Create Local Database
-Create a PostgreSQL database named `user_auth_db` using `createdb` or PostgreSQL admin tools (like pgAdmin or psql):
+### 5. Create Local Database (Using Docker or Local PostgreSQL)
+
+**Option A: Using Docker (Recommended)**
+Start the PostgreSQL container and Adminer database management web GUI using Docker Compose:
+```bash
+docker compose up -d
+```
+*Database name `user_auth_db`, user `postgres`, and password `postgres` are automatically initialized.*
+
+**Option B: Using Native PostgreSQL / pgAdmin**
+Create a PostgreSQL database named `user_auth_db` using `createdb` or PostgreSQL admin tools:
 ```sql
 CREATE DATABASE user_auth_db;
 ```
 
 ### 6. Environment Configurations
-Copy `.env.example` to `.env`:
+Copy `.env.example` to `.env` (if not already created):
 ```bash
 copy .env.example .env
 ```
-Open `.env` and verify details. Adjust `DATABASE_URL` with your PostgreSQL username, password, and port if they differ:
+Verify `DATABASE_URL` in `.env`:
 ```env
-DATABASE_URL=postgresql://<username>:<password>@localhost:5432/user_auth_db
+DATABASE_URL=postgresql://postgres:postgres@localhost:5432/user_auth_db
 ```
 
 ### 7. Run Database Migrations

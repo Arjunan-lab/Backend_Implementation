@@ -1,9 +1,23 @@
 from __future__ import annotations
 
 from datetime import datetime
+from enum import Enum
 from sqlalchemy import JSON, DateTime, Float, ForeignKey, String, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.database import Base
+
+
+class UserRole(str, Enum):
+    """Supported application security roles."""
+    FARMER = "farmer"
+    ADMIN = "admin"
+
+
+class UserStatus(str, Enum):
+    """Supported user account operational statuses."""
+    ACTIVE = "active"
+    SUSPENDED = "suspended"
+    INACTIVE = "inactive"
 
 
 class Language(Base):
@@ -27,8 +41,12 @@ class User(Base):
     __tablename__ = "users"
 
     id: Mapped[int] = mapped_column(primary_key=True, index=True)
+    username: Mapped[str | None] = mapped_column(String(100), nullable=True, index=True)
     email: Mapped[str] = mapped_column(String(255), unique=True, index=True, nullable=False)
     hashed_password: Mapped[str] = mapped_column(String(255), nullable=False)
+    role: Mapped[str] = mapped_column(String(20), default=UserRole.FARMER.value, server_default="farmer", nullable=False, index=True)
+    status: Mapped[str] = mapped_column(String(20), default=UserStatus.ACTIVE.value, server_default="active", nullable=False, index=True)
+    region: Mapped[str | None] = mapped_column(String(100), nullable=True, index=True)
     language_id: Mapped[int | None] = mapped_column(ForeignKey("languages.id"), nullable=True, index=True)
 
     # Login/logout tracking fields for future logout support.

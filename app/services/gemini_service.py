@@ -42,9 +42,10 @@ class GeminiService:
                 print("=" * 70)
                 continue
 
-        raise HTTPException(
-            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail="Gemini service is temporarily unavailable. Please try again later.",
+        print("[WARNING] All Gemini API keys exhausted or rate-limited. Returning fallback response.")
+        return (
+            "Our AI agriculture assistant is currently experiencing high request volume. "
+            "Please ask your farming question again in a few seconds!"
         )
 
 gemini_service = GeminiService()

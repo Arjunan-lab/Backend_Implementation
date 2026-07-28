@@ -33,7 +33,7 @@ async def analyze_nutrients(
 ) -> Dict[str, Any]:
     """Analyze soil inputs and return predicted nutrient deficiencies."""
     try:
-        request_data = request.dict()
+        request_data = request.model_dump()
         result = predict_nutrient_deficiency(request_data, current_user.language_id)
         return result
     except FileNotFoundError as exc:

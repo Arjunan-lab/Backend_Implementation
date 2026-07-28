@@ -40,13 +40,10 @@ def get_prediction_history_by_id(
     db: Session,
     user_id: int,
     history_id: int,
+    is_admin: bool = False,
 ) -> PredictionHistory | None:
-    """Return one prediction only when it belongs to the requesting user."""
-    return (
-        db.query(PredictionHistory)
-        .filter(
-            PredictionHistory.id == history_id,
-            PredictionHistory.user_id == user_id,
-        )
-        .first()
-    )
+    """Return one prediction. Admins can view any prediction; regular users view their own."""
+    query = db.query(PredictionHistory).filter(PredictionHistory.id == history_id)
+    if not is_admin:
+        query = query.filter(PredictionHistory.user_id == user_id)
+    return query.first()

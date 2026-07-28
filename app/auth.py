@@ -2,6 +2,7 @@ from datetime import datetime, timezone
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import SQLAlchemyError
 from fastapi import HTTPException, status
+from app.config import settings
 from app.models import Language, User
 from app.schemas import (
     ChangePasswordRequest,
@@ -44,10 +45,27 @@ def register_user(db: Session, user_data: UserRegisterRequest) -> User:
     # 3. Hash the password
     hashed_password = get_password_hash(user_data.password)
     
-    # 4. Create user entity
+    # 4. Determine assigned role cleanly
+    requested_role = user_data.role.value if hasattr(user_data.role, "value") else str(user_data.role)
+    if requested_role == "admin":
+        if user_data.admin_secret != settings.ADMIN_SECRET_KEY:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Access denied: Invalid or missing admin_secret key for Admin account registration.",
+            )
+        assigned_role = "admin"
+    else:
+        assigned_role = "farmer"
+
+    default_username = user_data.username or user_data.email.split("@")[0]
+
     db_user = User(
+        username=default_username,
         email=user_data.email,
         hashed_password=hashed_password,
+        role=assigned_role,
+        status="active",
+        region=user_data.region,
         language_id=user_data.language_id
     )
     
@@ -80,7 +98,14 @@ def authenticate_user(db: Session, login_data: UserLoginRequest) -> User:
             headers={"WWW-Authenticate": "Bearer"},
         )
 
-    # 3. Track the current UTC login time and commit it before returning the user.
+    # 3. Check account operational status
+    if user.status == "suspended":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Account suspended: Please contact your system administrator.",
+        )
+
+    # 4. Track the current UTC login time and commit it before returning the user.
     user.last_login_at = datetime.now(timezone.utc)
     db.add(user)
     db.commit()
@@ -94,7 +119,7 @@ def update_user_profile(
     current_user: User,
     user_data: UserUpdateRequest,
 ) -> User:
-    """Update the authenticated user's email and preferred language."""
+    """Update the authenticated user's profile details."""
     existing_user = (
         db.query(User)
         .filter(User.email == user_data.email, User.id != current_user.id)
@@ -112,6 +137,11 @@ def update_user_profile(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Invalid language_id. Please provide a valid predefined language id."
         )
+
+    if user_data.username is not None:
+        current_user.username = user_data.username
+    if user_data.region is not None:
+        current_user.region = user_data.region
 
     current_user.email = user_data.email
     current_user.language_id = user_data.language_id

@@ -12,6 +12,7 @@ from app.routes.history_routes import router as history_router
 from app.routes.task_routes import router as task_router
 from app.routes.chat_routes import router as chat_router
 from app.routes.analytics import router as analytics_router
+from app.routes.admin_routes import router as admin_router
 from app.database import engine, Base
 
 # Dynamic table creation fallback (useful for dev/test before running migrations)
@@ -37,6 +38,7 @@ app.add_middleware(
 
 # Include authentication endpoints
 app.include_router(auth_router)
+app.include_router(admin_router)
 app.include_router(prediction_router)
 app.include_router(crop_router)
 app.include_router(nutrient_router)

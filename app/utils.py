@@ -6,22 +6,24 @@ from app.config import settings
 def create_access_token(data: Dict[str, Any]) -> str:
     """
     Generate a JWT Access Token.
-    Includes user information and standard expiration claim.
+    Includes user information, iat timestamp, and standard expiration claim.
     """
     to_encode = data.copy()
-    expire = datetime.now(timezone.utc) + timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
-    to_encode.update({"exp": int(expire.timestamp())})
+    now = datetime.now(timezone.utc)
+    expire = now + timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
+    to_encode.update({"iat": int(now.timestamp()), "exp": int(expire.timestamp())})
     encoded_jwt = jwt.encode(to_encode, settings.JWT_SECRET_KEY, algorithm=settings.ALGORITHM)
     return encoded_jwt
 
 def create_refresh_token(data: Dict[str, Any]) -> str:
     """
     Generate a JWT Refresh Token.
-    Includes user information and standard expiration claim.
+    Includes user information, iat timestamp, and standard expiration claim.
     """
     to_encode = data.copy()
-    expire = datetime.now(timezone.utc) + timedelta(days=settings.REFRESH_TOKEN_EXPIRE_DAYS)
-    to_encode.update({"exp": int(expire.timestamp())})
+    now = datetime.now(timezone.utc)
+    expire = now + timedelta(days=settings.REFRESH_TOKEN_EXPIRE_DAYS)
+    to_encode.update({"iat": int(now.timestamp()), "exp": int(expire.timestamp())})
     encoded_jwt = jwt.encode(to_encode, settings.JWT_REFRESH_SECRET_KEY, algorithm=settings.ALGORITHM)
     return encoded_jwt
 

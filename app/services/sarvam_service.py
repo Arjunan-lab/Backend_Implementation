@@ -17,8 +17,12 @@ _LANGUAGE_CODES = {
 def translate_text(text: str, language_id: int) -> str:
     """Translate an English response label, returning the original text on failure."""
     target_language_code = _LANGUAGE_CODES.get(language_id)
-    if language_id == 1 or target_language_code is None:
+    if language_id == 1 or target_language_code is None or not text or not settings.SARVAM_API_KEY:
         return text
+
+    api_url = settings.SARVAM_API_URL.rstrip("/")
+    if not api_url.endswith("/translate"):
+        api_url = f"{api_url}/translate"
 
     try:
         payload = json.dumps({
@@ -27,7 +31,7 @@ def translate_text(text: str, language_id: int) -> str:
             "target_language_code": target_language_code,
         }).encode("utf-8")
         request = Request(
-            settings.SARVAM_API_URL,
+            api_url,
             data=payload,
             headers={
                 "api-subscription-key": settings.SARVAM_API_KEY,
@@ -38,6 +42,8 @@ def translate_text(text: str, language_id: int) -> str:
         with urlopen(request, timeout=10) as response:
             translated_text = json.loads(response.read().decode("utf-8")).get("translated_text")
 
-        return translated_text if isinstance(translated_text, str) else text
-    except Exception:
+        return translated_text if isinstance(translated_text, str) and translated_text.strip() else text
+    except Exception as exc:
+        print(f"[DEBUG] Sarvam translation exception: {exc}")
         return text
+
